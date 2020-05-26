@@ -54,6 +54,8 @@ def run(ddpg_type, log_dir, env_id, normalize_observations, normalize_returns, s
 
     teachers_conf = conf.pop('teachers', None)
     behavior_policy_params = conf.pop('behavior_policy_params', None)
+    ddpg_type=='Dropout DDPG'
+    # ddpg_type=='not_that'
     if ddpg_type=='Dropout DDPG':
         learner = DropoutBayesianDDPG(env,
                      eval_env=eval_env,

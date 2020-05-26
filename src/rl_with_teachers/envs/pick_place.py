@@ -17,9 +17,11 @@ class FetchOneGoalPickPlaceEnv(pick_and_place.FetchPickAndPlaceEnv):
     def __init__(self,
                  sparse=True,
                  goal=np.array([1.45, 0.55, 0.425]),
-                 better_dense_reward=False):
+                 better_dense_reward=False, OBJECT_START_WITH_Z=OBJECT_START_WITH_Z):
         self.goal = goal
         self.better_dense_reward = better_dense_reward
+        self.last_object_start = OBJECT_START_WITH_Z
+        self.OBJECT_START_WITH_Z = OBJECT_START_WITH_Z
         super().__init__('sparse' if sparse else 'dense')
         self.is_sparse = sparse
 
@@ -28,40 +30,50 @@ class FetchOneGoalPickPlaceEnv(pick_and_place.FetchPickAndPlaceEnv):
 
     def step(self, action):
         obs, reward, done, info = super().step(action)
-        if self.is_sparse:
-            if reward == 0:
-                reward = 1.0
-            else:
-                reward = 0.0
-            reward/=10.0
-        elif self.better_dense_reward:
+        obj_pos = obs['observation'][3:6]
+
+        #if self.is_sparse:
+            #if reward == 0:
+                #reward = 1.0
+            #else:
+                #reward = 0.0
+            # reward/=10.0
+        #elif self.better_dense_reward:
             # Better dense reward is different from default Fetch
             # dense reward of l2; ours increades from 0 to 1
             # as object nears goal
-            obj_pos = obs['observation'][3:6]
-            obj_goal = obs['desired_goal']
+            # obj_goal = obs['desired_goal']
+            #obj_goal = [1.45, .55, 0.425]
 
             ### give dense reward for distance from block to goal
-            goal_dist = np.linalg.norm(obj_goal - obj_pos)
-            goal_reward = 1. - np.tanh(10.0 * goal_dist)
-            reward = goal_reward
+            #goal_dist = np.linalg.norm(obj_goal - obj_pos)
+            #reward = 1. - np.tanh(10.0 * goal_dist)
 
+        reward = -1.0
+        done = np.linalg.norm([1.45, .55, 0.425] - obj_pos) + abs(.425-obj_pos[2]) < 0.01
         object_goal = np.array(obs['desired_goal'])
         obs_to_ret = np.concatenate([obs['observation'], object_goal])
         return obs_to_ret, reward, done, info
 
-    def reset(self):
+    def reset(self, repeat=False):
         obs = super().reset()
+        self._reset_sim(repeat)
         object_goal = np.array(obs['desired_goal'])
         obs_to_ret = np.concatenate([obs['observation'], object_goal])
         return obs_to_ret
 
-    def _reset_sim(self):
+    def _reset_sim(self, repeat=False):
         self.sim.set_state(self.initial_state)
 
         object_xpos = np.array(FetchOneGoalPickPlaceEnv.OBJECT_START)
-        object_xpos[0]+=(random.random()-0.5)/10.0
-        object_xpos[1]+=(random.random()-0.5)/10.0
+        # object_xpos[0]+=(random.random()-0.5)/10.0
+        # object_xpos[1]+=(random.random()-0.5)/10.0
+
+        if repeat:
+            object_xpos = self.last_object_start
+
+        self.last_object_start = object_xpos
+
         object_qpos = self.sim.data.get_joint_qpos('object0:joint')
         assert object_qpos.shape == (7,)
         object_qpos[:2] = object_xpos
@@ -144,3 +156,13 @@ register(
         max_episode_steps=100,
         )
 
+#new for us to use
+class PickPlaceRandomGoalEnv(FetchOneGoalPickPlaceEnv):
+    def __init__(self):                      # Y can range .45 < y < 1.0
+        super().__init__(sparse=False, goal=np.array([1.45, .55, 0.425]), better_dense_reward=True)
+
+register(
+        id='PickPlaceRandomGoal-v0',
+        entry_point='rl_with_teachers.envs:PickPlaceRandomGoalEnv',
+        max_episode_steps=100,
+        )

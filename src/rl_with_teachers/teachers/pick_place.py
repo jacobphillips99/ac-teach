@@ -10,13 +10,16 @@ class OptimalPickPlaceAgent(TeacherPolicy):
         self.goal = goal
         self.noise = noise
         self.picker = PickAgent(return_to_start=True)
-        self.placer = PlaceAgent(goal)
+        self.placer = PlaceAgent(goal, place_parabolic=False)
 
     def __call__(self, obs):
         cube_pos = obs[3:6]
-        goal_pos = obs[-6:-3]
-        achieved = np.linalg.norm(goal_pos - cube_pos) < 0.01
-        if not self.picker.is_grasping(obs) and not achieved:
+        # goal_pos = obs[-6:-3]
+        goal_pos = [1.45, .55, 0.425]
+        # achieved = np.linalg.norm(goal_pos - cube_pos) < 0.01
+        achieved = np.linalg.norm(goal_pos - cube_pos) < 0.1
+
+        if not self.picker.is_grasping(obs):
             action = self.picker(obs)
         else:
             action = self.placer(obs)
@@ -28,6 +31,7 @@ class OptimalPickPlaceAgent(TeacherPolicy):
     def reset(self):
         self.picker.reset()
         self.placer.reset()
+        self.done = False
 
 class PickAgent(TeacherPolicy):
     """

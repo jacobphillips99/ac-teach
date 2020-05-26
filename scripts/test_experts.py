@@ -129,13 +129,13 @@ if __name__ == "__main__":
         type=str,
     )
     parser.add_argument(
-        "--render_video", 
+        "--render_video",
         action='store_true',
     )
     args = parser.parse_args()
 
     assert(args.type in ["random", "full", "partial", "adversarial", "midpoint"])
-    assert(not args.render_video)
+    # assert(not args.render_video)
 
     ### TODO: decide if we want an offscreen render option to dump rollout videos or images ###
     ### TODO: use the type argument in a better, cleaner way to construct teachers? ###
