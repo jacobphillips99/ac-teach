@@ -108,3 +108,7 @@ venv.bak/
 /logs
 /save
 /teachenv
+
+/scripts/logs
+/scripts/save
+/scripts/videos
